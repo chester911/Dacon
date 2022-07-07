@@ -2,7 +2,9 @@
 select a.ym as 년월,
 	b.class3 as 업종,
     a.age as 연령대,
-    a.gender as 성별,
+    case when a.gender= 'F' then '여자'
+		else '남자'
+	end as 성별,
     a.amt as 사용금액,
     a.usect as 이용자수
 from
@@ -62,22 +64,22 @@ order by 1, 2;
 
 # 시간대별 이용자가 가장 많은 업종?
 with usect_rnk as
-(select ymd,
+(select substr(ymd, 1, 6) as ym,
 	time,
     class,
     sum(usect_corr) as usect,
-    rank() over(partition by ymd, time order by sum(usect_corr) desc) as rnk
+    rank() over(partition by substr(ymd, 1, 6) order by sum(usect_corr) desc) as rnk
 from card.agg_time
 group by 1, 2, 3)
 
-select ymd as 년월,
+select ym as 년월,
 	time as 시간대, 
     class as 업종,
     usect as 이용자수
 from usect_rnk
 where rnk= 1;
 
-# 이용자가 가장 많은 시간대 (월별)
+# 이용자가 가장 많은 시간대, 업종별 (월별)
 with time_rnk as
 (select substr(ymd, 1, 6) as ym,
 	time,
@@ -104,22 +106,3 @@ select substr(ymd, 1, 6) as 년월,
 from card.agg_region
 group by 1, 2, 3, 4
 order by 1;
-
-# 업종별 이용자 수 1위 지역 (월별)
-with monthly_rnk as
-(select substr(ymd, 1, 6) as ym,
-	class,
-    sido,
-    sgg,
-    sum(usect_corr) as user_cnt,
-    rank() over(partition by substr(ymd, 1, 6), class order by sum(usect_corr) desc) as rnk
-from card.agg_region
-group by 1, 2, 3, 4)
-
-select ym as 년월,
-	class as 업종,
-    sido as 지역대분류,
-    sgg as 지역소분류,
-    user_cnt as 이용자수
-from monthly_rnk
-where rnk= 1;
